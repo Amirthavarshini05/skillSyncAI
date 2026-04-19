@@ -15,10 +15,15 @@ import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, requireOnboarding = false }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/" />;
+  
+  if (requireOnboarding && user.needsOnboarding) {
+    return <Navigate to="/onboarding" />;
+  }
+  
   if (role && user.role !== role) return <Navigate to="/dashboard" />;
   return children;
 }
@@ -38,7 +43,7 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/" element={<ProtectedRoute requireOnboarding={true}><DashboardLayout /></ProtectedRoute>}>
               <Route path="dashboard" element={<DashboardProxy />} />
               <Route path="skill-profile" element={<SkillProfile />} />
               <Route path="career-matches" element={<CareerMatches />} />

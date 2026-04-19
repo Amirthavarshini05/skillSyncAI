@@ -23,7 +23,7 @@ export default function Roadmap() {
        </div>
 
        <div className="space-y-8">
-         {stages.map((stage, idx) => (
+         {stages && stages.map((stage, idx) => (
            <div key={idx} className="relative pl-8">
               <div className="absolute left-0 top-0 bottom-0 w-px bg-blue-200"></div>
               <div className="absolute left-[-4px] top-6 w-2 h-2 rounded-full bg-blue-500"></div>

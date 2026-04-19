@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -30,10 +30,84 @@ export default function Onboarding() {
   const handleNext = () => setStep(step + 1);
   const handlePrev = () => setStep(step - 1);
 
-  const handleSubmit = () => {
-    saveProfileProfile(formData);
-    completeOnboarding();
-    navigate('/dashboard');
+  useEffect(() => {
+    if (user && !user.needsOnboarding) {
+      const fetchProfile = async () => {
+        try {
+          const token = localStorage.getItem('skillsync_token');
+          const response = await fetch('http://localhost:8000/api/users/me/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setFormData(prev => ({
+              ...prev,
+              ...(data.education || {}),
+              ...(data.preferences || {}),
+              knownSkills: data.skills ? data.skills.map(s => s.name).join(', ') : ''
+            }));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchProfile();
+    }
+  }, [user]);
+
+  const handleSubmit = async () => {
+    try {
+      const skillsList = formData.knownSkills.split(',').map(s => ({ name: s.trim(), level: 'Beginner' })).filter(s => s.name);
+      
+      const payload = {
+        skills: skillsList,
+        education: {
+          educationLevel: formData.educationLevel,
+          department: formData.department,
+          collegeName: formData.collegeName,
+          currentYear: formData.currentYear,
+          institutionName: formData.institutionName,
+          institutionType: formData.institutionType,
+        },
+        preferences: {
+          careerGoal: formData.careerGoal,
+          companyName: formData.companyName,
+          industry: formData.industry,
+          targetRoles: formData.targetRoles,
+          studentCount: formData.studentCount,
+        },
+        resume_path: formData.resume_path
+      };
+
+      const token = localStorage.getItem('skillsync_token');
+      const isUpdating = user && !user.needsOnboarding;
+      const url = isUpdating 
+        ? 'http://localhost:8000/api/users/me/profile' 
+        : 'http://localhost:8000/api/users/me/onboarding';
+      const method = isUpdating ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to save profile');
+      }
+
+      await completeOnboarding();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
   };
 
   const renderStudentSteps = () => {
@@ -140,6 +214,47 @@ export default function Onboarding() {
     return null;
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    
+    try {
+      const token = localStorage.getItem('skillsync_token');
+      const response = await fetch('http://localhost:8000/api/users/me/resume', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataObj
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.skills && data.skills.length > 0) {
+          const newSkills = data.skills.map(s => s.name).join(', ');
+          setFormData(prev => ({
+            ...prev,
+            knownSkills: prev.knownSkills ? `${prev.knownSkills}, ${newSkills}` : newSkills,
+            resume_path: data.resume_path
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            resume_path: data.resume_path
+          }));
+        }
+        alert('Resume uploaded and parsed successfully!');
+      } else {
+        alert('Failed to upload resume');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error uploading resume');
+    }
+  };
+
   const renderStep3 = () => {
     const roleBasedText = {
       student: "Upload Resume (Optional)",
@@ -152,7 +267,8 @@ export default function Onboarding() {
          <div className="p-6 bg-blue-50 border border-blue-100 rounded-lg">
             <h3 className="font-bold text-blue-800 mb-2">{roleBasedText[user?.role] || roleBasedText.student}</h3>
             <p className="text-sm text-blue-600 mb-4">Let our AI extract details automatically.</p>
-            <input type="file" className="text-sm mx-auto" />
+            <input type="file" onChange={handleFileUpload} accept=".pdf,.doc,.docx" className="text-sm mx-auto" />
+            {formData.resume_path && <p className="text-green-600 text-sm mt-2">File uploaded successfully!</p>}
          </div>
          <p className="text-slate-500 text-sm mt-4">You're all set! Let's generate your dashboard.</p>
       </div>
