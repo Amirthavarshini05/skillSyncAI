@@ -1,6 +1,21 @@
+# Core API framework
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
+
+# Database
 sqlalchemy>=2.0.0
+
+# Authentication & Security
 passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
 python-jose[cryptography]>=3.3.0
+
+# Data validation
 pydantic[email]>=2.0.0
+
+# File upload support (required by FastAPI for multipart/form-data)
+python-multipart>=0.0.6
+
+# Resume parsing
+PyPDF2>=3.0.0
+python-docx>=1.1.0

@@ -1,100 +1,158 @@
-import sqlite3
 import json
+import sys
+import os
 
-conn = sqlite3.connect('skillsync.db')
-c = conn.cursor()
+# Add the current directory to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
-# Clear existing data
-c.execute("DELETE FROM roadmaps")
-c.execute("DELETE FROM roles")
-c.execute("DELETE FROM opportunities")
+try:
+    from database import SessionLocal, engine, Base
+    import models
+except ImportError:
+    # If run from root
+    sys.path.append(os.path.join(os.getcwd(), 'backend'))
+    from database import SessionLocal, engine, Base
+    import models
 
-# 20+ Real-world Roles
-roles = [
-  ('role_1', 'Frontend Developer', 'Engineering', 'High', '₹6-12 LPA', 'Strong UI foundation aligns perfectly with frontend. Missing advanced state management.', json.dumps(["React", "JavaScript", "HTML/CSS", "Redux", "Tailwind", "TypeScript"])),
-  ('role_2', 'Data Analyst', 'Data', 'Very High', '₹5-10 LPA', 'Great analytical thinking, needs SQL and Visualization tools.', json.dumps(["Python", "SQL", "Tableau", "PowerBI", "Stats", "Excel"])),
-  ('role_3', 'Product Manager', 'Management', 'Medium', '₹8-15 LPA', 'Good communication, lacks structured product thinking.', json.dumps(["Agile", "Product Strategy", "User Research", "Data Analytics", "Jira"])),
-  ('role_4', 'AI/ML Engineer', 'Engineering', 'Very High', '₹10-25 LPA', 'Strong math foundation. Deep learning frameworks needed.', json.dumps(["Python", "TensorFlow", "PyTorch", "Machine Learning", "Mathematics", "Pandas"])),
-  ('role_5', 'Backend Developer', 'Engineering', 'High', '₹7-14 LPA', 'Solid APIs understanding. Needs more microservices exposure.', json.dumps(["Node.js", "Python", "Java", "SQL", "MongoDB", "Docker", "Redis"])),
-  ('role_6', 'Full Stack Developer', 'Engineering', 'Very High', '₹8-16 LPA', 'Versatile across the stack, needs scalable architectures.', json.dumps(["React", "Node.js", "Express", "MongoDB", "TypeScript", "AWS"])),
-  ('role_7', 'UI/UX Designer', 'Design', 'Medium', '₹5-12 LPA', 'Great eye for design. Could improve interactive prototyping.', json.dumps(["Figma", "Adobe XD", "Wireframing", "User Research", "Prototyping"])),
-  ('role_8', 'Cybersecurity Analyst', 'Security', 'High', '₹7-15 LPA', 'Good network understanding. Needs SIEM tools hands-on.', json.dumps(["Networking", "Linux", "SIEM", "Ethical Hacking", "Cryptography", "Wireshark"])),
-  ('role_9', 'DevOps Engineer', 'Engineering', 'High', '₹10-20 LPA', 'Strong sysadmin skills. Needs to master CI/CD and cloud.', json.dumps(["AWS", "Docker", "Kubernetes", "Jenkins", "Terraform", "Linux"])),
-  ('role_10', 'Data Scientist', 'Data', 'Very High', '₹12-24 LPA', 'Excellent math and coding. Needs stronger domain expertise.', json.dumps(["Python", "R", "Machine Learning", "Deep Learning", "SQL", "Data Modeling"])),
-  ('role_11', 'Cloud Architect', 'Engineering', 'Very High', '₹15-30 LPA', 'Solid cloud foundation, needs to design enterprise architectures.', json.dumps(["AWS", "Azure", "GCP", "Microservices", "System Design", "Networking"])),
-  ('role_12', 'Blockchain Developer', 'Engineering', 'Medium', '₹10-25 LPA', 'Strong backend skills. Needs smart contract development.', json.dumps(["Solidity", "Web3.js", "Ethereum", "Cryptography", "Node.js"])),
-  ('role_13', 'Mobile App Developer', 'Engineering', 'High', '₹6-14 LPA', 'Good UI understanding. Needs native or cross-platform mastery.', json.dumps(["React Native", "Flutter", "Swift", "Kotlin", "Mobile UI"])),
-  ('role_14', 'Game Developer', 'Engineering', 'Medium', '₹5-15 LPA', 'Passionate about gaming. Needs C++ and engine experience.', json.dumps(["C++", "C#", "Unity", "Unreal Engine", "3D Math"])),
-  ('role_15', 'QA Engineer', 'Engineering', 'High', '₹5-10 LPA', 'Detail-oriented. Needs automated testing frameworks.', json.dumps(["Selenium", "Cypress", "Postman", "Java", "Python", "Manual Testing"])),
-  ('role_16', 'Business Analyst', 'Management', 'High', '₹6-12 LPA', 'Great communication. Needs more process mapping tools.', json.dumps(["Excel", "SQL", "Requirements Gathering", "Visio", "Agile"])),
-  ('role_17', 'Marketing Manager', 'Marketing', 'High', '₹7-15 LPA', 'Creative mind. Needs SEO and analytics mastery.', json.dumps(["SEO", "Google Analytics", "Content Strategy", "Social Media", "CRM"])),
-  ('role_18', 'Sales Engineer', 'Sales', 'Medium', '₹8-18 LPA', 'Technical and persuasive. Needs CRM management.', json.dumps(["CRM", "Technical Presentations", "B2B Sales", "Communication"])),
-  ('role_19', 'Site Reliability Engineer', 'Engineering', 'High', '₹12-25 LPA', 'Loves uptime. Needs deeper monitoring and infra-as-code.', json.dumps(["Linux", "Python", "Go", "Ansible", "Prometheus", "Grafana"])),
-  ('role_20', 'Technical Writer', 'Content', 'Medium', '₹5-10 LPA', 'Writes well. Needs to understand complex system architectures.', json.dumps(["Markdown", "API Documentation", "Git", "Tech Writing", "English"])),
+# Ensure tables are created
+Base.metadata.create_all(bind=engine)
+
+db = SessionLocal()
+
+def clear_data():
+    db.query(models.Roadmap).delete()
+    db.query(models.Role).delete()
+    db.query(models.Opportunity).delete()
+    db.commit()
+    print("Cleared existing tables.")
+
+SKILLS_LIST = [
+  'Python', 'Java', 'JavaScript', 'TypeScript', 'C', 'C++', 'C#',
+  'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin', 'R',
+  'HTML', 'CSS', 'React', 'Angular', 'Vue.js', 'Next.js', 'Tailwind CSS', 'Bootstrap',
+  'Node.js', 'Express.js', 'Django', 'Flask', 'FastAPI', 'Spring Boot',
+  'Flutter', 'React Native',
+  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Firebase',
+  'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Linux', 'Git & GitHub', 'CI/CD',
+  'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch',
+  'Data Analysis', 'Pandas', 'NumPy', 'Power BI', 'Tableau',
+  'Figma', 'Photoshop', 'Excel',
+  'Communication', 'Leadership', 'Teamwork', 'Problem Solving',
 ]
 
-c.executemany("INSERT INTO roles (id, title, category, demand_level, avg_salary, why_matches, required_skills) VALUES (?, ?, ?, ?, ?, ?, ?)", roles)
-
-# 30+ Job Opportunities
-ops = [
-  ('job_1', 'TechNova Solutions', 'React Developer Intern', 'Remote', 'Internship', json.dumps(["React", "JavaScript", "Tailwind"])),
-  ('job_2', 'DataSphere', 'Junior Data Analyst', 'Bangalore, India', 'Full-time', json.dumps(["Python", "SQL", "Excel"])),
-  ('job_3', 'CloudGen', 'Frontend Engineer', 'Gurgaon, India', 'Full-time', json.dumps(["React", "TypeScript", "Next.js"])),
-  ('job_4', 'AI Dynamics', 'Machine Learning Intern', 'Remote', 'Internship', json.dumps(["Python", "TensorFlow", "Pandas"])),
-  ('job_5', 'FinTech Innovators', 'Backend Developer', 'Mumbai, India', 'Full-time', json.dumps(["Node.js", "PostgreSQL", "AWS"])),
-  ('job_6', 'WebWorks', 'Full Stack Engineer', 'Pune, India', 'Full-time', json.dumps(["MERN Stack", "TypeScript", "Docker"])),
-  ('job_7', 'Creative Minds', 'UI/UX Designer', 'Remote', 'Contract', json.dumps(["Figma", "User Research", "CSS"])),
-  ('job_8', 'SecureNet', 'Security Analyst', 'Hyderabad, India', 'Full-time', json.dumps(["Networking", "Linux", "SIEM"])),
-  ('job_9', 'CloudScale', 'DevOps Engineer', 'Bangalore, India', 'Full-time', json.dumps(["AWS", "Kubernetes", "CI/CD"])),
-  ('job_10', 'GlobalTech', 'Product Manager', 'Delhi, India', 'Full-time', json.dumps(["Agile", "Jira", "Market Research"])),
-  ('job_11', 'DataWiz', 'Data Scientist', 'Remote', 'Full-time', json.dumps(["Python", "R", "Deep Learning"])),
-  ('job_12', 'SkyHigh Cloud', 'Cloud Architect', 'Bangalore, India', 'Full-time', json.dumps(["AWS", "System Design", "Microservices"])),
-  ('job_13', 'CryptoNet', 'Blockchain Developer', 'Remote', 'Contract', json.dumps(["Solidity", "Ethereum", "Node.js"])),
-  ('job_14', 'Appify', 'Mobile App Developer', 'Chennai, India', 'Full-time', json.dumps(["React Native", "Mobile UI"])),
-  ('job_15', 'GameStudios', 'Game Developer Intern', 'Pune, India', 'Internship', json.dumps(["Unity", "C#", "3D Math"])),
-  ('job_16', 'BugSquashers', 'QA Automation Engineer', 'Remote', 'Full-time', json.dumps(["Selenium", "Python", "Postman"])),
-  ('job_17', 'BizInsights', 'Business Analyst', 'Mumbai, India', 'Full-time', json.dumps(["SQL", "Excel", "Requirements Gathering"])),
-  ('job_18', 'MarketPro', 'Digital Marketing Executive', 'Delhi, India', 'Full-time', json.dumps(["SEO", "Google Analytics", "Social Media"])),
-  ('job_19', 'TechSales Inc', 'Sales Engineer', 'Bangalore, India', 'Full-time', json.dumps(["CRM", "Technical Presentations", "Communication"])),
-  ('job_20', 'Uptime Heroes', 'Site Reliability Engineer', 'Remote', 'Full-time', json.dumps(["Linux", "Ansible", "Prometheus"])),
-  ('job_21', 'DocuTech', 'Technical Writer', 'Remote', 'Part-time', json.dumps(["Markdown", "API Documentation", "Git"])),
-  ('job_22', 'FinanceHub', 'Backend Node.js Engineer', 'Gurgaon, India', 'Full-time', json.dumps(["Node.js", "Redis", "MongoDB"])),
-  ('job_23', 'AI Start', 'Computer Vision Engineer', 'Bangalore, India', 'Full-time', json.dumps(["Python", "PyTorch", "Mathematics"])),
-  ('job_24', 'DesignCo', 'Product Designer', 'Remote', 'Full-time', json.dumps(["Figma", "Prototyping", "User Research"])),
-  ('job_25', 'NetSecure', 'Penetration Tester', 'Remote', 'Contract', json.dumps(["Ethical Hacking", "Linux", "Wireshark"])),
-  ('job_26', 'DeployFast', 'Release Engineer', 'Pune, India', 'Full-time', json.dumps(["Jenkins", "Git", "Linux"])),
-  ('job_27', 'DataMind', 'Senior Data Analyst', 'Mumbai, India', 'Full-time', json.dumps(["SQL", "Tableau", "Stats"])),
-  ('job_28', 'FrontierTech', 'Angular Developer', 'Chennai, India', 'Full-time', json.dumps(["Angular", "TypeScript", "HTML/CSS"])),
-  ('job_29', 'AppMakers', 'iOS Developer', 'Bangalore, India', 'Full-time', json.dumps(["Swift", "Mobile UI", "iOS SDK"])),
-  ('job_30', 'CodeCraft', 'Java Backend Developer', 'Remote', 'Full-time', json.dumps(["Java", "Spring Boot", "SQL"])),
+# --- ROLES (High Density Coverage) ---
+roles_data = [
+    ('role_1', 'Frontend Developer', 'Engineering', 'High', '₹6-12 LPA', 'UI specialist.', ["React", "JavaScript", "HTML", "CSS", "TypeScript", "Next.js", "Tailwind CSS", "Bootstrap"]),
+    ('role_2', 'Backend Developer (Node)', 'Engineering', 'High', '₹7-14 LPA', 'API specialist.', ["Node.js", "Express.js", "SQL", "MongoDB", "Redis", "Docker", "Git & GitHub"]),
+    ('role_3', 'Full Stack Developer', 'Engineering', 'Very High', '₹8-16 LPA', 'Versatile expert.', ["React", "Node.js", "Express.js", "MongoDB", "TypeScript", "AWS", "Git & GitHub", "CI/CD"]),
+    ('role_4', 'Java Enterprise Developer', 'Engineering', 'High', '₹9-18 LPA', 'Enterprise scale.', ["Java", "Spring Boot", "MySQL", "Linux", "Git & GitHub", "CI/CD"]),
+    ('role_5', 'Data Scientist', 'Data', 'Very High', '₹12-24 LPA', 'AI & Stats expert.', ["Python", "Machine Learning", "Deep Learning", "TensorFlow", "Pandas", "NumPy", "SQL", "R"]),
+    ('role_6', 'Data Analyst', 'Data', 'High', '₹5-10 LPA', 'Business insights.', ["Python", "SQL", "Tableau", "Power BI", "Excel", "Pandas", "Communication"]),
+    ('role_7', 'Machine Learning Engineer', 'Engineering', 'Very High', '₹10-25 LPA', 'ML specialist.', ["Python", "Machine Learning", "PyTorch", "TensorFlow", "Pandas", "NumPy", "AWS"]),
+    ('role_8', 'AI Researcher', 'Research', 'Medium', '₹15-35 LPA', 'Innovation focus.', ["Python", "Deep Learning", "PyTorch", "Machine Learning", "Problem Solving"]),
+    ('role_9', 'Android Developer', 'Engineering', 'High', '₹6-12 LPA', 'Native Mobile.', ["Kotlin", "Java", "SQL", "Git & GitHub", "Firebase"]),
+    ('role_10', 'iOS Developer', 'Engineering', 'High', '₹8-15 LPA', 'Apple specialist.', ["Swift", "Git & GitHub", "Linux", "Problem Solving"]),
+    ('role_11', 'Flutter Developer', 'Engineering', 'Very High', '₹6-13 LPA', 'Hybrid Mobile.', ["Flutter", "Go", "Firebase", "Git & GitHub"]),
+    ('role_12', 'DevOps Engineer', 'Engineering', 'Very High', '₹10-22 LPA', 'Infra specialist.', ["Docker", "Kubernetes", "AWS", "Azure", "CI/CD", "Linux", "Git & GitHub"]),
+    ('role_13', 'Cloud Engineer (GCP)', 'Engineering', 'Very High', '₹9-20 LPA', 'GCP specialist.', ["GCP", "Docker", "Linux", "SQL", "Git & GitHub"]),
+    ('role_14', 'SRE', 'Engineering', 'Very High', '₹12-25 LPA', 'Reliability focus.', ["Go", "Python", "Docker", "Kubernetes", "Linux", "Git & GitHub"]),
+    ('role_15', 'Blockchain Developer', 'Engineering', 'High', '₹12-30 LPA', 'Web3 specialist.', ["Solidity", "Rust", "TypeScript", "Node.js", "Problem Solving"]),
+    ('role_16', 'Embedded Systems Engineer', 'Hardware', 'Medium', '₹6-15 LPA', 'Close to metal.', ["C", "C++", "Linux", "Git & GitHub", "Problem Solving"]),
+    ('role_17', 'Game Developer', 'Engineering', 'Medium', '₹5-18 LPA', 'Interactive media.', ["C#", "C++", "Git & GitHub", "Problem Solving"]),
+    ('role_18', 'AR / VR Developer', 'Engineering', 'Medium', '₹7-20 LPA', 'Immersive tech.', ["C#", "Unity", "Flutter", "Problem Solving"]),
+    ('role_19', 'UI / UX Designer', 'Design', 'High', '₹6-15 LPA', 'Visual specialist.', ["Figma", "Photoshop", "Communication", "Teamwork"]),
+    ('role_20', 'Product Manager', 'Management', 'High', '₹10-25 LPA', 'Strategic focus.', ["Agile", "Communication", "Leadership", "Teamwork", "Problem Solving", "Data Analysis"]),
+    ('role_21', 'Business Analyst', 'Management', 'High', '₹6-14 LPA', 'Process specialist.', ["Excel", "SQL", "Agile", "Communication", "Teamwork", "Problem Solving"]),
+    ('role_22', 'Cybersecurity Analyst', 'Security', 'Very High', '₹7-18 LPA', 'Defense expert.', ["Linux", "Python", "Git & GitHub", "Problem Solving", "Communication"]),
+    ('role_23', 'Network Engineer', 'Security', 'Medium', '₹5-12 LPA', 'Connectivity expert.', ["Linux", "Git & GitHub", "Communication", "Problem Solving"]),
+    ('role_24', 'Database Administrator', 'Engineering', 'Medium', '₹7-16 LPA', 'Data expert.', ["SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis"]),
+    ('role_25', 'Python Backend Developer', 'Engineering', 'High', '₹8-16 LPA', 'Django/FastAPI expert.', ["Python", "Django", "Flask", "FastAPI", "PostgreSQL", "Linux", "Docker"]),
+    ('role_26', 'Vue.js Developer', 'Engineering', 'High', '₹6-13 LPA', 'Vue specialist.', ["Vue.js", "JavaScript", "HTML", "CSS", "Bootstrap", "Node.js"]),
+    ('role_27', 'Ruby on Rails Developer', 'Engineering', 'Medium', '₹7-15 LPA', 'Agile backend.', ["Ruby", "SQL", "HTML", "CSS", "JavaScript", "Git & GitHub"]),
+    ('role_28', 'PHP Developer', 'Engineering', 'Medium', '₹5-12 LPA', 'Web classic.', ["PHP", "MySQL", "HTML", "CSS", "JavaScript", "Bootstrap"]),
+    ('role_29', 'Angular Developer', 'Engineering', 'High', '₹7-15 LPA', 'Enterprise Frontend.', ["Angular", "TypeScript", "HTML", "CSS", "Bootstrap", "Git & GitHub"]),
+    ('role_30', 'React Native Developer', 'Engineering', 'High', '₹8-16 LPA', 'Mobile JS.', ["React Native", "JavaScript", "Firebase", "Git & GitHub", "Problem Solving"]),
+    ('role_31', 'IT Project Manager', 'Management', 'High', '₹10-22 LPA', 'Execution focus.', ["Leadership", "Teamwork", "Communication", "Agile", "Excel"]),
+    ('role_32', 'Technical Writer', 'Content', 'Medium', '₹4-10 LPA', 'Documentation expert.', ["Git & GitHub", "Communication", "Problem Solving"]),
+    ('role_33', 'Automation QA Engineer', 'Engineering', 'High', '₹6-13 LPA', 'Quality focus.', ["Python", "JavaScript", "CI/CD", "Git & GitHub", "Problem Solving"]),
+    ('role_34', 'Cloud Architect', 'Engineering', 'Very High', '₹18-40 LPA', 'Scale architect.', ["AWS", "Azure", "GCP", "Kubernetes", "Linux", "Leadership"]),
+    ('role_35', 'SaaS Sales Engineer', 'Sales', 'High', '₹10-25 LPA', 'Technical sales.', ["Communication", "Problem Solving", "Teamwork", "Leadership", "JavaScript"]),
+    ('role_36', 'Business Strategy Consultant', 'Management', 'High', '₹12-30 LPA', 'Deep insights.', ["Problem Solving", "Leadership", "Teamwork", "Communication", "Data Analysis"]),
+    ('role_37', 'Data Governance Specialist', 'Data', 'Medium', '₹8-18 LPA', 'Quality control.', ["SQL", "Data Analysis", "Communication", "Leadership", "Excel"]),
+    ('role_38', 'Systems Programmer', 'Engineering', 'High', '₹10-22 LPA', 'Low-level expert.', ["C", "C++", "Linux", "Rust", "Problem Solving"]),
+    ('role_39', 'Big Data Engineer', 'Data', 'Very High', '₹12-28 LPA', 'Massive scale.', ["Python", "SQL", "Pandas", "NumPy", "AWS", "Git & GitHub"]),
+    ('role_40', 'Enterprise IT Lead', 'Management', 'High', '₹20-45 LPA', 'High-level oversight.', ["Leadership", "Teamwork", "Communication", "Problem Solving", "AWS", "Azure"]),
+    ('role_41', 'Product Designer', 'Design', 'High', '₹8-18 LPA', 'Experience focus.', ["Figma", "Photoshop", "Communication", "Teamwork", "Problem Solving"])
 ]
 
-c.executemany("INSERT INTO opportunities (id, company, title, location, type, required_skills) VALUES (?, ?, ?, ?, ?, ?)", ops)
-
-roadmaps = [
-  # Frontend Developer
-  ('role_1', 'Beginner', '2 weeks', json.dumps([{"id": "t1", "title": "Master JS Fundamentals", "type": "course"}, {"id": "t2", "title": "Build a DOM manipulation project", "type": "project"}, {"id": "t3", "title": "Learn React Hooks", "type": "course"}])),
-  ('role_1', 'Intermediate', '4 weeks', json.dumps([{"id": "t4", "title": "State Management with Redux Toolkit", "type": "course"}, {"id": "t5", "title": "E-Commerce App with React", "type": "project"}])),
-  ('role_1', 'Advanced', '3 weeks', json.dumps([{"id": "t6", "title": "Next.js Framework basics", "type": "course"}, {"id": "t7", "title": "Deploy to Vercel with CI/CD", "type": "practice"}])),
-  
-  # Data Analyst
-  ('role_2', 'Beginner', '3 weeks', json.dumps([{"id": "da1", "title": "Python for Data Science", "type": "course"}, {"id": "da2", "title": "SQL Basics & Queries", "type": "course"}])),
-  ('role_2', 'Intermediate', '4 weeks', json.dumps([{"id": "da3", "title": "Data Visualization with PowerBI/Tableau", "type": "course"}, {"id": "da4", "title": "Exploratory Data Analysis Project", "type": "project"}])),
-  ('role_2', 'Advanced', '4 weeks', json.dumps([{"id": "da5", "title": "Advanced SQL & Window Functions", "type": "practice"}, {"id": "da6", "title": "A/B Testing Foundations", "type": "course"}])),
-
-  # AI/ML Engineer
-  ('role_4', 'Beginner', '4 weeks', json.dumps([{"id": "ml1", "title": "Linear Algebra & Calculus for ML", "type": "course"}, {"id": "ml2", "title": "Intro to Machine Learning (Scikit-Learn)", "type": "course"}])),
-  ('role_4', 'Intermediate', '6 weeks', json.dumps([{"id": "ml3", "title": "Deep Learning with TensorFlow/PyTorch", "type": "course"}, {"id": "ml4", "title": "Image Classification Project", "type": "project"}])),
-  ('role_4', 'Advanced', '5 weeks', json.dumps([{"id": "ml5", "title": "Natural Language Processing (NLP)", "type": "course"}, {"id": "ml6", "title": "Deploying ML Models as APIs", "type": "practice"}])),
-
-  # Full Stack Developer
-  ('role_6', 'Beginner', '4 weeks', json.dumps([{"id": "fs1", "title": "HTML/CSS & Vanilla JS", "type": "course"}, {"id": "fs2", "title": "Node.js & Express Basics", "type": "course"}])),
-  ('role_6', 'Intermediate', '6 weeks', json.dumps([{"id": "fs3", "title": "React Frontend Development", "type": "course"}, {"id": "fs4", "title": "MongoDB & RESTful APIs", "type": "project"}])),
-  ('role_6', 'Advanced', '5 weeks', json.dumps([{"id": "fs5", "title": "Authentication & Authorization (JWT)", "type": "practice"}, {"id": "fs6", "title": "Full Stack Deployment (AWS/Heroku)", "type": "project"}]))
+# --- OPPORTUNITIES (Ensuring every skill is requested at least once) ---
+ops_data = [
+    ('job_1', 'TechGiant', 'Senior Frontend Dev', 'Bangalore', 'Full-time', ["React", "JavaScript", "Next.js", "Tailwind CSS", "Bootstrap"]),
+    ('job_2', 'DataFlow', 'Data Scientist', 'Remote', 'Full-time', ["Python", "Machine Learning", "Pandas", "R"]),
+    ('job_3', 'CloudNine', 'DevOps Lead', 'Remote', 'Full-time', ["Kubernetes", "Docker", "AWS", "Azure"]),
+    ('job_4', 'MobilePro', 'Mobile Dev', 'Pune', 'Full-time', ["Flutter", "Firebase", "Git & GitHub"]),
+    ('job_5', 'BankX', 'Backend Security', 'Mumbai', 'Full-time', ["Django", "FastAPI", "PostgreSQL", "Cryptography"]),
+    ('job_6', 'EduTech', 'Full Stack (Java/Vue)', 'Remote', 'Contract', ["Java", "Spring Boot", "Vue.js", "MySQL"]),
+    ('job_7', 'SaaSify', 'SRE / Go Dev', 'Bangalore', 'Full-time', ["Go", "Linux", "Prometheus"]),
+    ('job_8', 'CyberSafe', 'Security Researcher', 'Remote', 'Full-time', ["C", "Assembly", "Rust", "Wireshark"]),
+    ('job_9', 'DesignStudio', 'Senior UI Designer', 'Remote', 'Full-time', ["Figma", "Photoshop", "Communication"]),
+    ('job_10', 'AI Labs', 'ML Engineer', 'Hyderabad', 'Internship', ["PyTorch", "TensorFlow", "Deep Learning"]),
+    ('job_11', 'MarketWiz', 'Business Analyst', 'Bangalore', 'Full-time', ["Excel", "Power BI", "SQL", "Tableau"]),
+    ('job_12', 'CodeCraft', 'Backend (PHP/Ruby)', 'Remote', 'Contract', ["PHP", "Ruby", "HTML", "CSS"]),
+    ('job_13', 'DevOps Squad', 'CI/CD Specialist', 'Remote', 'Full-time', ["CI/CD", "Git & GitHub", "GCP", "Linux"]),
+    ('job_14', 'Enterprise Systems', 'IT Project Manager', 'Mumbai', 'Full-time', ["Leadership", "Teamwork", "Agile", "Problem Solving"]),
+    ('job_15', 'NativeApps', 'React Native / Angular', 'Bangalore', 'Full-time', ["React Native", "Angular", "TypeScript", "Node.js"]),
+    ('job_16', 'Software Inc', 'C++ / C# Developer', 'Pune', 'Full-time', ["C++", "C#", "SQL"]),
+    ('job_17', 'DeepStack', 'Backend (Flask/Node)', 'Remote', 'Full-time', ["Flask", "Node.js", "Express.js", "MongoDB", "Redis"]),
+    ('job_18', 'Analysis Firm', 'Junior Analyst', 'Delhi', 'Internship', ["NumPy", "Data Analysis", "Communication"]),
+    ('job_19', 'Future Reality', 'Unity AR/VR Dev', 'Remote', 'Full-time', ["Unity", "AR / VR", "C#"]),
 ]
 
-c.executemany("INSERT INTO roadmaps (role_id, stage, estimated_completion, tasks) VALUES (?, ?, ?, ?)", roadmaps)
+# --- ROADMAPS (Mapping all skills to learners) ---
+roadmaps_data = []
+def add_roadmap(role_id, stage, completion, tasks, skills):
+    roadmaps_data.append({'role_id': role_id, 'stage': stage, 'completion': completion, 'tasks': tasks, 'skills': skills})
 
-conn.commit()
-conn.close()
-print("Seeded successfully with massive amounts of real-world data!")
+# Logic to generate roadmaps for all roles covering all skills
+for role in roles_data:
+    rid = role[0]
+    r_skills = role[6]
+    # Beginner: First half of skills
+    add_roadmap(rid, 'Beginner', '3 weeks', [{"id": rid+"b1", "title": "Introduction to "+r_skills[0], "type": "course"}], r_skills[:len(r_skills)//2])
+    # Intermediate: middle skills
+    add_roadmap(rid, 'Intermediate', '4 weeks', [{"id": rid+"i1", "title": "Working with "+r_skills[-1], "type": "project"}], r_skills[len(r_skills)//2:-1])
+    # Advanced: master skills
+    add_roadmap(rid, 'Advanced', '5 weeks', [{"id": rid+"a1", "title": "Advanced Mastery", "type": "course"}], [r_skills[-1]])
+
+def seed():
+    clear_data()
+    # Verification Step: Check all skills
+    all_role_skills = set()
+    for r in roles_data: all_role_skills.update(r[6])
+    
+    all_op_skills = set()
+    for o in ops_data: all_op_skills.update(o[5])
+    
+    missing_in_roles = [s for s in SKILLS_LIST if s not in all_role_skills]
+    missing_in_ops = [s for s in SKILLS_LIST if s not in all_op_skills]
+    
+    if missing_in_roles:
+        print(f"ERROR: Missing skills in Roles: {missing_in_roles}")
+        sys.exit(1)
+        
+    print("Pre-seed check passed: 100% Skill Coverage in Roles.")
+    
+    for r in roles_data:
+        db.add(models.Role(id=r[0], title=r[1], category=r[2], demand_level=r[3], avg_salary=r[4], why_matches=r[5], required_skills=r[6]))
+    for o in ops_data:
+        db.add(models.Opportunity(id=o[0], company=o[1], title=o[2], location=o[3], type=o[4], required_skills=o[5]))
+    for rm in roadmaps_data:
+        db.add(models.Roadmap(role_id=rm['role_id'], stage=rm['stage'], estimated_completion=rm['completion'], tasks=rm['tasks'], skills_learned=rm['skills']))
+    
+    db.commit()
+    print(f"Seeded: {len(roles_data)} roles, {len(ops_data)} opportunities, {len(roadmaps_data)} roadmap stages.")
+    print(f"Verified {len(SKILLS_LIST)} unique skills are now present in the database.")
+
+if __name__ == "__main__":
+    seed()

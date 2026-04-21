@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from typing import List
 import models, schemas, auth_utils
 from database import get_db
-import random
 router = APIRouter(
     prefix="/api/dashboard",
     tags=["Dashboard"]
@@ -27,43 +26,30 @@ def get_enriched_user_skills(profile_skills):
     return enriched
 
 def calculate_match_score(user_skills, required_skills):
+    """
+    Strict formula: matched_skills / total_required_skills * 100
+    Returns 0 when the user has no matching skills at all.
+    """
     if not required_skills:
-        return 100
+        return 0
     if not user_skills:
-        return random.randint(30, 50) # Fallback if user has no skills yet
+        return 0  # User has no skills — zero match, do not show this career
 
-    # Convert enriched user skills to a dictionary mapping name to level
-    user_skills_map = {s.get("name", "").lower(): s.get("level", "Beginner") for s in user_skills if isinstance(s, dict)}
-    
-    match_count = 0
+    # Build a flat set of lowercased user skill names for fast lookup
+    user_skill_names = {
+        s.get("name", "").lower()
+        for s in user_skills
+        if isinstance(s, dict)
+    }
+
+    matched = 0
     for req_skill in required_skills:
         req_lower = req_skill.lower()
-        
-        # Find if user has a skill that matches
-        matched_level = None
-        if req_lower in user_skills_map:
-            matched_level = user_skills_map[req_lower]
-        else:
-            # Partial match check
-            for u_skill, lvl in user_skills_map.items():
-                if req_lower in u_skill or u_skill in req_lower:
-                    matched_level = lvl
-                    break
-        
-        if matched_level:
-            # Give full point for Advanced/Intermediate, half point for Beginner
-            if matched_level in ["Advanced", "Intermediate"]:
-                match_count += 1
-            else:
-                match_count += 0.5
-            
-    # Calculate base percentage (0 to 100)
-    base_score = (match_count / len(required_skills)) * 100
-    
-    # Scale the score so the UI always shows something reasonable (e.g., 40 to 100)
-    # This prevents the score from being 0% which can be discouraging
-    scaled_score = 40 + int((base_score / 100) * 60)
-    return scaled_score
+        if req_lower in user_skill_names:
+            matched += 1
+
+    # Score = skills user already has / total skills required (0–100, no scaling)
+    return round((matched / len(required_skills)) * 100)
 
 @router.get("/roles", response_model=List[schemas.RoleResponse])
 def get_roles(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
@@ -72,13 +58,38 @@ def get_roles(current_user: models.User = Depends(auth_utils.get_current_user), 
     raw_skills = profile.skills if profile else []
     enriched_skills = get_enriched_user_skills(raw_skills)
 
-    # Calculate actual match score based on user's profile vs role requirements
+    # Compute strict match score for each role
     for r in roles:
         r.match_score = calculate_match_score(enriched_skills, r.required_skills)
-        
-    # Sort by match score descending
-    roles.sort(key=lambda x: x.match_score, reverse=True)
-    return roles
+
+    # Only return roles where the student has at least one matching skill
+    matched_roles = [r for r in roles if r.match_score > 0]
+
+    # Sort by match score descending (highest relevance first)
+    matched_roles.sort(key=lambda x: x.match_score, reverse=True)
+    return matched_roles
+
+@router.get("/explore", response_model=List[schemas.RoleResponse])
+def get_explore_roles(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
+    """
+    Returns High / Very High demand roles where the student has 0% match.
+    These are aspirational roles shown separately to inspire upskilling.
+    """
+    high_demand = {"High", "Very High"}
+    roles = db.query(models.Role).all()
+    profile = db.query(models.StudentProfile).filter(models.StudentProfile.user_id == current_user.id).first()
+    raw_skills = profile.skills if profile else []
+    enriched_skills = get_enriched_user_skills(raw_skills)
+
+    explore = []
+    for r in roles:
+        if r.demand_level in high_demand:
+            r.match_score = calculate_match_score(enriched_skills, r.required_skills)
+            if r.match_score == 0:          # Only roles the student has zero overlap with
+                explore.append(r)
+
+    return explore
+
 
 @router.get("/opportunities", response_model=List[schemas.OpportunityResponse])
 def get_opportunities(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
@@ -87,13 +98,16 @@ def get_opportunities(current_user: models.User = Depends(auth_utils.get_current
     raw_skills = profile.skills if profile else []
     enriched_skills = get_enriched_user_skills(raw_skills)
 
-    # Calculate actual match score based on user's profile vs job requirements
+    # Compute strict match score for each opportunity
     for o in ops:
         o.match_score = calculate_match_score(enriched_skills, o.required_skills)
-        
+
+    # Only return opportunities where the student has at least one matching skill
+    matched_ops = [o for o in ops if o.match_score > 0]
+
     # Sort by match score descending
-    ops.sort(key=lambda x: x.match_score, reverse=True)
-    return ops
+    matched_ops.sort(key=lambda x: x.match_score, reverse=True)
+    return matched_ops
 
 @router.get("/roadmap")
 def get_roadmap(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
@@ -105,7 +119,8 @@ def get_roadmap(current_user: models.User = Depends(auth_utils.get_current_user)
         result[r.role_id].append({
             "stage": r.stage,
             "estimatedCompletion": r.estimated_completion,
-            "tasks": r.tasks
+            "tasks": r.tasks,
+            "skills_learned": r.skills_learned
         })
     return result
 
@@ -152,11 +167,44 @@ def apply_for_job(application: schemas.ApplicationCreate, current_user: models.U
 def get_applications(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
     return db.query(models.Application).filter(models.Application.user_id == current_user.id).all()
 
+import urllib.request
+import xml.etree.ElementTree as ET
+
 @router.get("/insights")
 def get_market_insights(current_user: models.User = Depends(auth_utils.get_current_user), db: Session = Depends(get_db)):
+    news = []
+    try:
+        url = "https://news.google.com/rss/search?q=technology+jobs&hl=en-IN&gl=IN&ceid=IN:en"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            xml_data = response.read()
+            root = ET.fromstring(xml_data)
+            for item in root.findall('./channel/item')[:5]:
+                news.append({
+                    "title": item.find('title').text,
+                    "link": item.find('link').text,
+                    "pubDate": item.find('pubDate').text,
+                    "source": item.find('source').text if item.find('source') is not None else "Google News"
+                })
+    except Exception as e:
+        print("RSS Scraping error:", e)
+        news = [
+            {"title": "Tech Hiring Surges in 2026: Companies Seek AI and Cloud Experts", "link": "#", "pubDate": "Today", "source": "Tech News"},
+            {"title": "Remote Work Policies Stabilize Across Major Tech Hubs", "link": "#", "pubDate": "Yesterday", "source": "Job Market Daily"},
+            {"title": "New Study Shows React and Next.js Dominating Frontend Roles", "link": "#", "pubDate": "2 days ago", "source": "Frontend Weekly"}
+        ]
+
     return {
         "trendingRole": {"title": "AI / ML Engineer", "stat": "+24% YoY Demand"},
         "topHub": {"title": "Bangalore, India", "stat": "12,000+ open roles"},
         "topSkill": {"title": "React & Next.js", "stat": "Found in 45% of frontend JDs"},
-        "forecast": [40, 60, 55, 80, 95, 85]
+        "forecast": [
+            {"year": "2020", "React": 40, "Python": 50, "AWS": 30},
+            {"year": "2021", "React": 55, "Python": 60, "AWS": 45},
+            {"year": "2022", "React": 70, "Python": 65, "AWS": 60},
+            {"year": "2023", "React": 80, "Python": 75, "AWS": 75},
+            {"year": "2024", "React": 95, "Python": 85, "AWS": 88},
+            {"year": "2025", "React": 85, "Python": 90, "AWS": 95}
+        ],
+        "news": news
     }

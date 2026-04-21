@@ -4,6 +4,7 @@ import { AppDataProvider } from './context/AppDataContext';
 import LandingPage from './pages/public/LandingPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import VerifyOTP from './pages/auth/VerifyOTP';
 import Onboarding from './pages/auth/Onboarding';
 import DashboardLayout from './components/layout/DashboardLayout';
 import DashboardProxy from './components/layout/DashboardProxy';
@@ -37,6 +38,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />

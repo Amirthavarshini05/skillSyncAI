@@ -92,6 +92,7 @@ def update_profile(profile_data: schemas.StudentProfileCreate, current_user: mod
     profile.skills = profile_data.skills
     profile.education = profile_data.education
     profile.preferences = profile_data.preferences
+    profile.roadmap_progress = profile_data.roadmap_progress
     
     if profile_data.resume_path:
         profile.resume_path = profile_data.resume_path

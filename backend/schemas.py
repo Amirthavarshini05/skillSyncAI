@@ -19,6 +19,11 @@ class UserResponse(BaseModel):
     email: str
     role: UserRole
     needs_onboarding: bool
+    is_verified: bool
+
+class VerifyOTP(BaseModel):
+    email: str
+    otp: str
 
     class Config:
         from_attributes = True
@@ -33,6 +38,7 @@ class StudentProfileBase(BaseModel):
     preferences: Dict[str, Any] = {}
     resume_path: Optional[str] = None
     resume_data: Optional[Dict[str, Any]] = None
+    roadmap_progress: Dict[str, Any] = {}
 
 class StudentProfileCreate(StudentProfileBase):
     pass
@@ -76,6 +82,7 @@ class RoadmapResponse(BaseModel):
     stage: str
     estimated_completion: str
     tasks: List[Dict[str, str]]
+    skills_learned: List[str]
 
     class Config:
         from_attributes = True

@@ -24,6 +24,8 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.student)
     needs_onboarding = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    otp_code = Column(String, nullable=True)
 
     profile = relationship("StudentProfile", back_populates="user", uselist=False)
     applications = relationship("Application", back_populates="user")
@@ -38,6 +40,7 @@ class StudentProfile(Base):
     preferences = Column(JSON, default=dict)
     resume_path = Column(String, nullable=True)
     resume_data = Column(JSON, default=dict, nullable=True)
+    roadmap_progress = Column(JSON, default=dict)
 
     user = relationship("User", back_populates="profile")
 
@@ -88,5 +91,6 @@ class Roadmap(Base):
     stage = Column(String) # e.g. "Beginner"
     estimated_completion = Column(String)
     tasks = Column(JSON, default=list)
+    skills_learned = Column(JSON, default=list)
 
     role = relationship("Role", back_populates="roadmaps")

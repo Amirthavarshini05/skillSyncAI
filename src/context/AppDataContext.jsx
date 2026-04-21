@@ -14,7 +14,10 @@ export function AppDataProvider({ children }) {
   const [insights, setInsights] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    fetchData();
+  }, [user]);
+
+  const fetchData = async () => {
       const token = localStorage.getItem('skillsync_token');
       if (!token || !user) return;
       
@@ -65,11 +68,8 @@ export function AppDataProvider({ children }) {
         console.error("Failed to load dashboard data", err);
       }
     };
-    
-    fetchData();
-  }, [user]);
-
   const saveProfileProfile = (data) => setStudentProfile(data);
+  const refetchData = () => fetchData();
 
   const applyForJob = async (jobId) => {
     const token = localStorage.getItem('skillsync_token');
@@ -107,7 +107,8 @@ export function AppDataProvider({ children }) {
       roles,
       roadmap,
       opportunities,
-      insights
+      insights,
+      refetchData
     }}>
       {children}
     </AppDataContext.Provider>

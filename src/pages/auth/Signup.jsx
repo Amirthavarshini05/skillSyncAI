@@ -18,7 +18,7 @@ export default function Signup() {
     setError('');
     try {
       await signup(name, email, password, role);
-      navigate('/onboarding');
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
