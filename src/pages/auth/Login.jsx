@@ -10,10 +10,31 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login(email, password, role);
-    navigate('/dashboard');
+    setError('');
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err.message.includes('not verified')) {
+         setError(
+           <span>
+             {err.message}{' '}
+             <button 
+               onClick={() => navigate(`/verify-otp?email=${encodeURIComponent(email)}`)}
+               className="underline font-bold"
+             >
+               Verify now
+             </button>
+           </span>
+         );
+      } else {
+         setError(err.message || 'Login failed');
+      }
+    }
   };
 
   return (
@@ -28,6 +49,15 @@ export default function Login() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-slate-100">
           <form className="space-y-6" onSubmit={handleLogin}>
+            {error && (
+              <div className={`text-sm text-center p-3 rounded-xl border ${
+                typeof error !== 'string' 
+                ? 'bg-amber-50 text-amber-700 border-amber-100 flex flex-col items-center gap-2' 
+                : 'bg-red-50 text-red-500 border-red-100'
+              }`}>
+                {error}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700">Email address</label>
               <div className="mt-1">

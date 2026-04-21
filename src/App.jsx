@@ -4,6 +4,7 @@ import { AppDataProvider } from './context/AppDataContext';
 import LandingPage from './pages/public/LandingPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import VerifyOTP from './pages/auth/VerifyOTP';
 import Onboarding from './pages/auth/Onboarding';
 import DashboardLayout from './components/layout/DashboardLayout';
 import DashboardProxy from './components/layout/DashboardProxy';
@@ -15,10 +16,15 @@ import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, requireOnboarding = false }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/" />;
+  
+  if (requireOnboarding && user.needsOnboarding) {
+    return <Navigate to="/onboarding" />;
+  }
+  
   if (role && user.role !== role) return <Navigate to="/dashboard" />;
   return children;
 }
@@ -32,13 +38,14 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />
               </ProtectedRoute>
             } />
             
-            <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/" element={<ProtectedRoute requireOnboarding={true}><DashboardLayout /></ProtectedRoute>}>
               <Route path="dashboard" element={<DashboardProxy />} />
               <Route path="skill-profile" element={<SkillProfile />} />
               <Route path="career-matches" element={<CareerMatches />} />
