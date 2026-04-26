@@ -15,6 +15,7 @@ import Opportunities from './pages/student/Opportunities';
 import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
+import MockInterview from './pages/student/MockInterview';
 
 function ProtectedRoute({ children, role, requireOnboarding = false }) {
   const { user, loading } = useAuth();
@@ -54,6 +55,7 @@ function App() {
               <Route path="market-insights" element={<MarketInsights />} />
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="tracker" element={<ApplicationTracker />} />
+              <Route path="mock-interview" element={<MockInterview />} />
             </Route>
           </Routes>
         </BrowserRouter>

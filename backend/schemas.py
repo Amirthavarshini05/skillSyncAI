@@ -58,12 +58,19 @@ class OpportunityResponse(BaseModel):
     type: str
     required_skills: List[str]
     match_score: Optional[int] = None
+    url: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 class ApplicationCreate(BaseModel):
     job_id: str
+    company: Optional[str] = None
+    title: Optional[str] = None
+    location: Optional[str] = None
+    type: Optional[str] = None
+    required_skills: Optional[List[str]] = None
+    url: Optional[str] = None
 
 class ApplicationResponse(BaseModel):
     id: int

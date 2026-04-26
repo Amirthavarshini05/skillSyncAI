@@ -13,7 +13,14 @@ router = APIRouter(
     tags=["Users"]
 )
 
-COMMON_SKILLS = ["python", "java", "javascript", "react", "node.js", "c++", "c#", "sql", "machine learning", "data analysis", "docker", "kubernetes", "aws", "azure", "gcp", "html", "css", "typescript", "figma"]
+COMMON_SKILLS = [
+    "python", "java", "javascript", "react", "node.js", "c++", "c#", "sql", "machine learning", "data analysis", 
+    "docker", "kubernetes", "aws", "azure", "gcp", "html", "css", "typescript", "figma", "angular", "vue.js",
+    "next.js", "tailwind css", "bootstrap", "express.js", "django", "flask", "fastapi", "spring boot", "php",
+    "ruby", "go", "rust", "flutter", "react native", "swift", "kotlin", "mysql", "postgresql", "mongodb",
+    "redis", "deep learning", "tensorflow", "pytorch", "pandas", "numpy", "power bi", "tableau", "photoshop",
+    "excel", "linux", "git", "github", "ci/cd", "agile", "scrum", "communication", "leadership", "teamwork", "problem solving"
+]
 
 def extract_skills_from_text(text: str):
     text_lower = text.lower()

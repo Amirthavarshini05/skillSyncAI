@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppData } from '../../context/AppDataContext';
 import { useSearchParams, Link, useLocation } from 'react-router-dom';
-import { CheckCircle2, Circle, ArrowLeft, Link as LinkIcon, Send, Undo2 } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowLeft, Link as LinkIcon, Send, Undo2, Lock, Unlock, Sparkles, Trophy } from 'lucide-react';
 
 export default function Roadmap() {
   const { roadmap, roles, studentProfile, refetchData } = useAppData();
@@ -101,7 +101,8 @@ export default function Roadmap() {
     return earned;
   };
 
-  const toggleNormalTask = (id) => {
+  const toggleNormalTask = (id, isLocked) => {
+    if (isLocked) return;
     const isDone = progress[id]?.completed;
     const newProgress = { ...progress };
     
@@ -115,8 +116,9 @@ export default function Roadmap() {
     saveProgressToBackend(newProgress, getNewlyEarnedSkills(newProgress));
   };
 
-  const handleProjectClick = (id, e) => {
+  const handleProjectClick = (id, e, isLocked) => {
     e.stopPropagation(); // prevent parent div click
+    if (isLocked) return;
     const isDone = progress[id]?.completed;
     if (isDone) {
        // Allow them to undo
@@ -141,7 +143,7 @@ export default function Roadmap() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl pb-12 animate-fade-in">
+    <div className="space-y-8 max-w-5xl pb-20 animate-fade-in mx-auto">
       <Link
         to="/career-matches"
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition font-medium"
@@ -149,156 +151,192 @@ export default function Roadmap() {
         <ArrowLeft className="w-4 h-4" /> Back to Career Matches
       </Link>
 
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">
-          Career Roadmap: <span className="text-indigo-600">{roleTitle}</span>
-        </h2>
-        <p className="text-slate-500 mt-1">
-          Complete stages to unlock basic skills in your profile. Projects require a public URL.
-        </p>
-      </div>
-
-      {rolesWithRoadmap.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {rolesWithRoadmap.map((r) => (
-            <Link
-              key={r.id}
-              to={`/roadmap?role=${r.id}`}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-                r.id === activeRoleId
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600'
-              }`}
-            >
-              {r.title}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {stages.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-          <p className="text-slate-500 text-sm">
-            No roadmap has been defined for <strong>{roleTitle}</strong> yet.
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-8">
-        {stages.map((stage, idx) => {
-           // Parse skills for UI display
-           let stageSkills = [];
-           try {
-             stageSkills = typeof stage.skills_learned === 'string' 
-               ? JSON.parse(stage.skills_learned) 
-               : (stage.skills_learned || []);
-           } catch(e) {}
+      <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl border border-slate-800 relative overflow-hidden text-white">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500 opacity-20 blur-3xl rounded-full mix-blend-screen pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+           <div>
+             <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
+               Interactive Skill Tree <Sparkles className="w-6 h-6 text-indigo-400"/>
+             </h2>
+             <p className="text-slate-400 mt-2 text-lg">
+               Path: <strong className="text-white">{roleTitle}</strong>
+             </p>
+           </div>
            
-           const allTasksCompleted = stage.tasks.every(t => progress[t.id]?.completed);
-
-           return (
-            <div key={idx} className="relative pl-8">
-              <div className={`absolute left-0 top-0 bottom-0 w-px ${allTasksCompleted ? 'bg-emerald-300' : 'bg-indigo-200'}`} />
-              <div className={`absolute left-[-4px] top-6 w-2.5 h-2.5 rounded-full border-2 border-white shadow ${allTasksCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
-
-              <div className={`bg-white p-6 rounded-xl shadow-sm border transition ${allTasksCompleted ? 'border-emerald-100 hover:border-emerald-300' : 'border-slate-100 hover:border-indigo-200'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-lg text-slate-800">{stage.stage} Stage</h3>
-                  <span className="text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 px-2.5 py-0.5 rounded-full font-semibold mb-1 lg:mb-0 text-center inline-block">
-                    {stage.estimatedCompletion}
-                  </span>
-                </div>
-                
-                {stageSkills.length > 0 && (
-                  <div className="text-xs text-slate-500 mb-5 flex flex-wrap items-center gap-1.5">
-                    Skills learned here: 
-                    {stageSkills.map(s => (
-                       <span key={s} className={`px-2 py-0.5 rounded text-[10px] font-bold ${allTasksCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{s}</span>
-                    ))}
-                    {allTasksCompleted && <span className="text-emerald-600 ml-1 font-medium">(Added to profile!)</span>}
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {stage.tasks.map((task) => {
-                    const isDone = progress[task.id]?.completed;
-                    const savedLink = progress[task.id]?.link;
-                    const isProject = task.type === 'project';
-                    const isInputActive = activeProjectInput.id === task.id;
-
-                    return (
-                      <div key={task.id} className="border border-slate-100 rounded-lg overflow-hidden">
-                        <div
-                          className={`flex items-center gap-3 p-3 transition ${!isProject ? 'hover:bg-slate-50 cursor-pointer group' : ''} ${isDone ? 'bg-slate-50/50' : ''}`}
-                          onClick={() => !isProject && toggleNormalTask(task.id)}
-                        >
-                          {!isProject ? (
-                              isDone 
-                                ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                                : <Circle className="w-5 h-5 text-slate-300 group-hover:text-indigo-400 shrink-0" />
-                          ) : (
-                              isDone 
-                                ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                                : <LinkIcon className="w-5 h-5 text-orange-400 shrink-0" />
-                          )}
-                          
-                          <div className="flex-1">
-                            <p className={`font-medium text-sm ${isDone ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
-                              {task.title}
-                            </p>
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold ${isProject ? 'text-orange-500' : 'text-slate-400'}`}>
-                              {task.type}
-                            </span>
-                          </div>
-
-                          {/* Action Button for Project Tasks */}
-                          {isProject && (
-                             <button 
-                                onClick={(e) => handleProjectClick(task.id, e)}
-                                className={`text-xs px-3 py-1.5 rounded-md font-medium transition ${isDone ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
-                             >
-                               {isDone ? <Undo2 className="w-3.5 h-3.5" /> : 'Submit URL'}
-                             </button>
-                          )}
-                        </div>
-
-                        {/* Submitted Link Display */}
-                        {isDone && savedLink && (
-                          <div className="px-11 pb-3 pt-0 text-sm text-slate-500">
-                             <a href={savedLink} target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline inline-flex items-center gap-1">
-                               <LinkIcon className="w-3 h-3" /> {savedLink}
-                             </a>
-                          </div>
-                        )}
-
-                        {/* Project URL Input Form */}
-                        {isInputActive && !isDone && (
-                          <div className="px-11 pb-3 pt-1 flex gap-2">
-                            <input 
-                              type="url"
-                              placeholder="https://github.com/your-repo"
-                              className="flex-1 text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={activeProjectInput.link}
-                              onChange={(e) => setActiveProjectInput({ ...activeProjectInput, link: e.target.value })}
-                            />
-                            <button 
-                              onClick={() => submitProject(task.id)}
-                              className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center"
-                            >
-                              <Send className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-           );
-        })}
+           {rolesWithRoadmap.length > 1 && (
+             <div className="flex bg-slate-800/50 p-1.5 rounded-xl border border-slate-700/50 backdrop-blur-md">
+               <select 
+                  className="bg-transparent text-white font-bold text-sm px-4 py-2 appearance-none outline-none cursor-pointer"
+                  value={activeRoleId}
+                  onChange={(e) => window.location.href = `/roadmap?role=${e.target.value}`}
+               >
+                 {rolesWithRoadmap.map(r => <option key={r.id} value={r.id} className="bg-slate-900">{r.title}</option>)}
+               </select>
+             </div>
+           )}
+        </div>
       </div>
+
+      {stages.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
+          <p className="text-slate-500">No skill tree defined for this path yet.</p>
+        </div>
+      ) : (
+        <div className="relative pt-6 pb-12">
+          {/* Main vertical tree line */}
+          <div className="absolute left-8 top-0 bottom-0 w-1.5 bg-slate-100 rounded-full"></div>
+
+          <div className="space-y-12">
+            {stages.map((stage, idx) => {
+               // Determine if node is locked (previous stage must be fully completed)
+               let isLocked = false;
+               if (idx > 0) {
+                  const prevStage = stages[idx-1];
+                  const prevCompleted = prevStage.tasks.every(t => progress[t.id]?.completed);
+                  if (!prevCompleted) isLocked = true;
+               }
+
+               let stageSkills = [];
+               try {
+                 stageSkills = typeof stage.skills_learned === 'string' ? JSON.parse(stage.skills_learned) : (stage.skills_learned || []);
+               } catch(e) {}
+               
+               const allTasksCompleted = stage.tasks.every(t => progress[t.id]?.completed);
+               
+               // Visual styling states
+               const nodeColor = allTasksCompleted ? 'bg-emerald-500' : isLocked ? 'bg-slate-200' : 'bg-indigo-500';
+               const borderColor = allTasksCompleted ? 'border-emerald-200' : isLocked ? 'border-slate-200' : 'border-indigo-300';
+               const cardBg = allTasksCompleted ? 'bg-white' : isLocked ? 'bg-slate-50/50' : 'bg-white';
+               const glow = allTasksCompleted ? 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' : (!isLocked ? 'shadow-[0_0_20px_rgba(99,102,241,0.2)] border-indigo-200' : 'shadow-none border-slate-100');
+
+               return (
+                <div key={idx} className={`relative pl-24 group transition-all duration-500 ${isLocked ? 'opacity-70 grayscale-[0.3]' : 'opacity-100'}`}>
+                  {/* Tree Node Point */}
+                  <div className={`absolute left-0 top-8 flex items-center justify-center`}>
+                     {/* Connecting line to the card */}
+                     <div className={`absolute left-[36px] top-[14px] w-12 h-1 bg-slate-200 ${allTasksCompleted ? 'bg-emerald-300' : !isLocked ? 'bg-indigo-200' : ''} transition-colors`}></div>
+                     
+                     {/* Outer pulse if active */}
+                     {!isLocked && !allTasksCompleted && <div className="absolute w-12 h-12 bg-indigo-500/20 rounded-full animate-ping ml-[9px] mt-[1px]"></div>}
+                     
+                     {/* The Node */}
+                     <div className={`relative z-10 w-16 h-16 rounded-2xl ml-[1.5px] border-4 ${borderColor} ${nodeColor} flex items-center justify-center text-white font-black shadow-lg transition-colors`}>
+                        {allTasksCompleted ? <Trophy className="w-7 h-7" /> : isLocked ? <Lock className="w-6 h-6 text-slate-400" /> : <Unlock className="w-6 h-6" />}
+                     </div>
+                  </div>
+
+                  {/* Stage Card */}
+                  <div className={`p-8 rounded-3xl border-2 ${glow} ${cardBg} transition-all`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                      <h3 className={`font-black text-2xl tracking-tight ${isLocked ? 'text-slate-400' : 'text-slate-800'}`}>{stage.stage} Stage</h3>
+                      {isLocked ? (
+                         <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-bold uppercase tracking-wider mt-2 sm:mt-0 inline-flex items-center gap-1"><Lock className="w-3 h-3"/> Locked</span>
+                      ) : (
+                         <span className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider mt-2 sm:mt-0 inline-flex items-center gap-1 border border-indigo-100">
+                            {stage.estimatedCompletion}
+                         </span>
+                      )}
+                    </div>
+                    
+                    {stageSkills.length > 0 && (
+                      <div className="text-sm font-semibold text-slate-400 mb-6 flex flex-wrap items-center gap-2">
+                        Unlocks skills: 
+                        {stageSkills.map(s => (
+                           <span key={s} className={`px-2.5 py-1 rounded-md text-xs font-bold border ${allTasksCompleted ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm' : isLocked ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                             {s}
+                           </span>
+                        ))}
+                        {allTasksCompleted && <span className="text-emerald-500 ml-1 font-bold animate-pulse inline-flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> Saved to AI Profile!</span>}
+                      </div>
+                    )}
+
+                    <div className="space-y-3 relative">
+                      {isLocked && <div className="absolute inset-0 z-10 cursor-not-allowed"></div>}
+                      {stage.tasks.map((task) => {
+                        const isDone = progress[task.id]?.completed;
+                        const savedLink = progress[task.id]?.link;
+                        const isProject = task.type === 'project';
+                        const isInputActive = activeProjectInput.id === task.id;
+
+                        return (
+                          <div key={task.id} className={`border-2 rounded-xl overflow-hidden transition-all duration-300 ${isDone ? 'border-emerald-100 bg-emerald-50/30' : isLocked ? 'border-slate-100 bg-slate-50/50' : 'border-slate-100 bg-white hover:border-indigo-100'}`}>
+                            <div
+                              className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 ${!isProject && !isLocked ? 'cursor-pointer group' : ''}`}
+                              onClick={() => !isProject && toggleNormalTask(task.id, isLocked)}
+                            >
+                              <div className="flex items-center gap-4 flex-1">
+                                 <button className={`shrink-0 focus:outline-none transition-transform ${!isLocked && !isDone && !isProject ? 'group-hover:scale-110' : ''}`}>
+                                    {!isProject ? (
+                                        isDone 
+                                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500 drop-shadow-sm" />
+                                          : <Circle className={`w-6 h-6 ${isLocked ? 'text-slate-200' : 'text-slate-300 group-hover:text-indigo-400'}`} />
+                                    ) : (
+                                        isDone 
+                                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500 drop-shadow-sm" />
+                                          : <LinkIcon className={`w-6 h-6 ${isLocked ? 'text-slate-200' : 'text-orange-400'}`} />
+                                    )}
+                                 </button>
+                                 
+                                 <div>
+                                   <p className={`font-bold text-sm sm:text-base ${isDone ? 'text-slate-500 line-through' : isLocked ? 'text-slate-400' : 'text-slate-700'}`}>
+                                     {task.title}
+                                   </p>
+                                   <span className={`text-[10px] uppercase tracking-widest font-black ${isLocked ? 'text-slate-300' : isProject ? 'text-orange-500' : 'text-slate-400'}`}>
+                                     {task.type}
+                                   </span>
+                                 </div>
+                              </div>
+
+                              {/* Action Button for Project Tasks */}
+                              {isProject && !isLocked && (
+                                 <button 
+                                    onClick={(e) => handleProjectClick(task.id, e, isLocked)}
+                                    className={`shrink-0 w-full sm:w-auto text-xs px-4 py-2 rounded-lg font-bold shadow-sm transition-all active:scale-95 ${isDone ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200'}`}
+                                 >
+                                   {isDone ? <span className="flex items-center justify-center gap-2"><Undo2 className="w-3.5 h-3.5" /> Undo URL</span> : 'Submit Project URL'}
+                                 </button>
+                              )}
+                            </div>
+
+                            {/* Submitted Link Display */}
+                            {isDone && savedLink && (
+                              <div className="px-4 pb-4 pt-0 sm:pl-14">
+                                 <a href={savedLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-indigo-600 font-medium hover:border-indigo-300 hover:bg-indigo-50 transition-colors shadow-sm">
+                                   <LinkIcon className="w-3.5 h-3.5" /> {savedLink}
+                                 </a>
+                              </div>
+                            )}
+
+                            {/* Project URL Input Form */}
+                            {isInputActive && !isDone && !isLocked && (
+                              <div className="px-4 pb-4 pt-2 sm:pl-14 flex flex-col sm:flex-row gap-2">
+                                <input 
+                                  type="url"
+                                  placeholder="Paste your GitHub repository or live URL here..."
+                                  className="flex-1 text-sm font-medium px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                                  value={activeProjectInput.link}
+                                  onChange={(e) => setActiveProjectInput({ ...activeProjectInput, link: e.target.value })}
+                                />
+                                <button 
+                                  onClick={() => submitProject(task.id)}
+                                  className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 font-bold shadow-md shadow-indigo-200 flex items-center justify-center gap-2 transition-transform active:scale-95"
+                                >
+                                  Submit <Send className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+               );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

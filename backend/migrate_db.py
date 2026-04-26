@@ -23,6 +23,32 @@ def migrate():
         else:
             print("'otp_code' column already exists.")
             
+        # Check if skills_learned exists in roadmaps
+        cursor.execute("PRAGMA table_info(roadmaps)")
+        roadmaps_columns = [column[1] for column in cursor.fetchall()]
+        
+        if 'skills_learned' not in roadmaps_columns:
+            print("Adding column 'skills_learned' to 'roadmaps' table...")
+            cursor.execute("ALTER TABLE roadmaps ADD COLUMN skills_learned JSON")
+        else:
+            print("'skills_learned' column already exists in roadmaps.")
+            
+        # Check if new columns exist in student_profiles
+        cursor.execute("PRAGMA table_info(student_profiles)")
+        student_profiles_columns = [column[1] for column in cursor.fetchall()]
+        
+        if 'resume_path' not in student_profiles_columns:
+            print("Adding column 'resume_path' to 'student_profiles' table...")
+            cursor.execute("ALTER TABLE student_profiles ADD COLUMN resume_path TEXT")
+            
+        if 'resume_data' not in student_profiles_columns:
+            print("Adding column 'resume_data' to 'student_profiles' table...")
+            cursor.execute("ALTER TABLE student_profiles ADD COLUMN resume_data JSON")
+            
+        if 'roadmap_progress' not in student_profiles_columns:
+            print("Adding column 'roadmap_progress' to 'student_profiles' table...")
+            cursor.execute("ALTER TABLE student_profiles ADD COLUMN roadmap_progress JSON")
+            
         conn.commit()
         conn.close()
         print("Migration completed successfully!")
