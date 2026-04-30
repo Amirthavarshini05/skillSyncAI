@@ -23,8 +23,10 @@ export function AuthProvider({ children }) {
           userData.needsOnboarding = userData.needs_onboarding;
         }
         setUser(userData);
+        return userData;
       } else {
         logout();
+        return null;
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -58,7 +60,7 @@ export function AuthProvider({ children }) {
 
       const data = await response.json();
       localStorage.setItem('skillsync_token', data.access_token);
-      await fetchUser(data.access_token);
+      return await fetchUser(data.access_token);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -141,8 +143,15 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refetchUser = async () => {
+    const token = localStorage.getItem('skillsync_token');
+    if (token) {
+      return await fetchUser(token);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, verifyOTP, resendOTP, logout, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, verifyOTP, resendOTP, logout, completeOnboarding, refetchUser }}>
       {children}
     </AuthContext.Provider>
   );

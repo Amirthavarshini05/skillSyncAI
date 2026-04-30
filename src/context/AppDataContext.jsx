@@ -97,12 +97,38 @@ export function AppDataProvider({ children }) {
     }
   };
 
+  const updateApplicationStatus = async (appId, newStatus) => {
+    const token = localStorage.getItem('skillsync_token');
+    if (!token) return;
+
+    // Optimistically update UI
+    setTrackedApplications(prev => prev.map(app => 
+      app.id === appId ? { ...app, status: newStatus } : app
+    ));
+
+    try {
+      await fetch(`http://localhost:8000/api/dashboard/applications/${appId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+    } catch (err) {
+      console.error(err);
+      // Revert on failure by refetching
+      refetchData();
+    }
+  };
+
   return (
     <AppDataContext.Provider value={{
       studentProfile,
       saveProfileProfile,
       trackedApplications,
       applyForJob,
+      updateApplicationStatus,
       skills,
       roles,
       roadmap,

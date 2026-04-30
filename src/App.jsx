@@ -15,6 +15,9 @@ import Opportunities from './pages/student/Opportunities';
 import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
+import MockInterview from './pages/student/MockInterview';
+import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
+import CollegeDashboard from './pages/college/CollegeDashboard';
 
 function ProtectedRoute({ children, role, requireOnboarding = false }) {
   const { user, loading } = useAuth();
@@ -45,6 +48,18 @@ function App() {
               </ProtectedRoute>
             } />
             
+            <Route path="/recruiter-dashboard" element={
+              <ProtectedRoute role="recruiter" requireOnboarding={true}>
+                <RecruiterDashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/college-dashboard" element={
+              <ProtectedRoute role="college" requireOnboarding={true}>
+                <CollegeDashboard />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/" element={<ProtectedRoute requireOnboarding={true}><DashboardLayout /></ProtectedRoute>}>
               <Route path="dashboard" element={<DashboardProxy />} />
               <Route path="skill-profile" element={<SkillProfile />} />
@@ -54,6 +69,7 @@ function App() {
               <Route path="market-insights" element={<MarketInsights />} />
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="tracker" element={<ApplicationTracker />} />
+              <Route path="mock-interview" element={<MockInterview />} />
             </Route>
           </Routes>
         </BrowserRouter>
