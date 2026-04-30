@@ -59,14 +59,16 @@ def get_roles(current_user: models.User = Depends(auth_utils.get_current_user), 
     enriched_skills = get_enriched_user_skills(raw_skills)
 
     # Compute strict match score for each role
+    matched_roles = []
     for r in roles:
-        r.match_score = calculate_match_score(enriched_skills, r.required_skills)
-
-    # Only return roles where the student has at least one matching skill
-    matched_roles = [r for r in roles if r.match_score > 0]
+        r_dict = r.__dict__.copy()
+        r_dict.pop('_sa_instance_state', None)
+        r_dict['match_score'] = calculate_match_score(enriched_skills, r.required_skills)
+        if r_dict['match_score'] > 0:
+            matched_roles.append(r_dict)
 
     # Sort by match score descending (highest relevance first)
-    matched_roles.sort(key=lambda x: x.match_score, reverse=True)
+    matched_roles.sort(key=lambda x: x['match_score'], reverse=True)
     return matched_roles
 
 @router.get("/explore", response_model=List[schemas.RoleResponse])
@@ -84,9 +86,11 @@ def get_explore_roles(current_user: models.User = Depends(auth_utils.get_current
     explore = []
     for r in roles:
         if r.demand_level in high_demand:
-            r.match_score = calculate_match_score(enriched_skills, r.required_skills)
-            if r.match_score == 0:          # Only roles the student has zero overlap with
-                explore.append(r)
+            r_dict = r.__dict__.copy()
+            r_dict.pop('_sa_instance_state', None)
+            r_dict['match_score'] = calculate_match_score(enriched_skills, r.required_skills)
+            if r_dict['match_score'] == 0:          # Only roles the student has zero overlap with
+                explore.append(r_dict)
 
     return explore
 

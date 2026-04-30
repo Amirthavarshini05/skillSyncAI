@@ -26,9 +26,13 @@ class User(Base):
     needs_onboarding = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     otp_code = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
 
     profile = relationship("StudentProfile", back_populates="user", uselist=False)
+    recruiter_profile = relationship("RecruiterProfile", back_populates="user", uselist=False)
+    college_profile = relationship("CollegeProfile", back_populates="user", uselist=False)
     applications = relationship("Application", back_populates="user")
+    shortlists = relationship("Shortlist", foreign_keys="[Shortlist.recruiter_id]", back_populates="recruiter")
 
 class StudentProfile(Base):
     __tablename__ = "student_profiles"
@@ -43,6 +47,44 @@ class StudentProfile(Base):
     roadmap_progress = Column(JSON, default=dict)
 
     user = relationship("User", back_populates="profile")
+
+class RecruiterProfile(Base):
+    __tablename__ = "recruiter_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    company_name = Column(String, index=True)
+    industry = Column(String)
+    target_roles = Column(String)
+    required_skills = Column(JSON, default=list)
+    logo_path = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="recruiter_profile")
+
+class CollegeProfile(Base):
+    __tablename__ = "college_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    institution_name = Column(String, index=True)
+    institution_type = Column(String)
+    student_count = Column(Integer)
+    departments = Column(String)
+    logo_path = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="college_profile")
+
+class Shortlist(Base):
+    __tablename__ = "shortlists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recruiter_id = Column(Integer, ForeignKey("users.id"))
+    student_id = Column(Integer, ForeignKey("users.id"))
+    notes = Column(String, nullable=True)
+    added_date = Column(DateTime, default=datetime.utcnow)
+
+    recruiter = relationship("User", foreign_keys=[recruiter_id], back_populates="shortlists")
+    student = relationship("User", foreign_keys=[student_id])
 
 class Opportunity(Base):
     __tablename__ = "opportunities"

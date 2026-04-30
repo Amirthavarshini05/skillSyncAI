@@ -204,11 +204,12 @@ export default function Onboarding() {
     // Recruiter fields
     companyName: '',
     industry: 'Technology',
-    targetRoles: '',
+    targetRoles: [],
     // College admin fields
     institutionName: '',
     institutionType: 'University',
     studentCount: '',
+    collegeDepartments: [],
   });
 
   // Toggle a skill chip on / off
@@ -220,6 +221,30 @@ export default function Onboarding() {
         knownSkills: current.includes(skill)
           ? current.filter((s) => s !== skill)
           : [...current, skill],
+      };
+    });
+  };
+
+  const toggleTargetRole = (role) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev.targetRoles) ? prev.targetRoles : [];
+      return {
+        ...prev,
+        targetRoles: current.includes(role)
+          ? current.filter((r) => r !== role)
+          : [...current, role],
+      };
+    });
+  };
+
+  const toggleCollegeDepartment = (dept) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev.collegeDepartments) ? prev.collegeDepartments : [];
+      return {
+        ...prev,
+        collegeDepartments: current.includes(dept)
+          ? current.filter((d) => d !== dept)
+          : [...current, dept],
       };
     });
   };
@@ -265,37 +290,63 @@ export default function Onboarding() {
 
   const handleSubmit = async () => {
     try {
-      // knownSkills is an array — convert to [{name, level}] for backend
-      const skillsList = formData.knownSkills
-        .map((name) => ({ name: name.trim(), level: 'Beginner' }))
-        .filter((s) => s.name);
-
-      const payload = {
-        skills: skillsList,
-        education: {
-          educationLevel: formData.educationLevel,
-          collegeName: formData.collegeName,
-          department: formData.department,
-          currentYear: formData.currentYear,
-          institutionName: formData.institutionName,
-          institutionType: formData.institutionType,
-        },
-        preferences: {
-          careerGoal: formData.careerGoal,
-          companyName: formData.companyName,
-          industry: formData.industry,
-          targetRoles: formData.targetRoles,
-          studentCount: formData.studentCount,
-        },
-        resume_path: formData.resume_path,
-      };
-
       const token = localStorage.getItem('skillsync_token');
       const isUpdating = user && !user.needsOnboarding;
-      const url = isUpdating
-        ? 'http://localhost:8000/api/users/me/profile'
-        : 'http://localhost:8000/api/users/me/onboarding';
       const method = isUpdating ? 'PUT' : 'POST';
+      let url = '';
+      let payload = {};
+
+      if (user?.role === 'recruiter') {
+        payload = {
+          company_name: formData.companyName,
+          industry: formData.industry,
+          target_roles: Array.isArray(formData.targetRoles) ? formData.targetRoles.join(', ') : formData.targetRoles,
+          required_skills: Array.isArray(formData.knownSkills) ? formData.knownSkills : formData.knownSkills.split(',').map(s=>s.trim()).filter(Boolean),
+          logo_path: formData.resume_path,
+        };
+        url = isUpdating
+          ? 'http://localhost:8000/api/users/me/recruiter-profile'
+          : 'http://localhost:8000/api/users/me/recruiter-onboarding';
+      } else if (user?.role === 'college') {
+        payload = {
+          institution_name: formData.institutionName,
+          institution_type: formData.institutionType,
+          student_count: parseInt(formData.studentCount, 10) || 0,
+          departments: Array.isArray(formData.collegeDepartments) ? formData.collegeDepartments.join(', ') : formData.collegeDepartments,
+          logo_path: formData.resume_path,
+        };
+        url = isUpdating
+          ? 'http://localhost:8000/api/users/me/college-profile'
+          : 'http://localhost:8000/api/users/me/college-onboarding';
+      } else {
+        // knownSkills is an array — convert to [{name, level}] for backend
+        const skillsList = formData.knownSkills
+          .map((name) => ({ name: name.trim(), level: 'Beginner' }))
+          .filter((s) => s.name);
+
+        payload = {
+          skills: skillsList,
+          education: {
+            educationLevel: formData.educationLevel,
+            collegeName: formData.collegeName,
+            department: formData.department,
+            currentYear: formData.currentYear,
+            institutionName: formData.institutionName,
+            institutionType: formData.institutionType,
+          },
+          preferences: {
+            careerGoal: formData.careerGoal,
+            companyName: formData.companyName,
+            industry: formData.industry,
+            targetRoles: formData.targetRoles,
+            studentCount: formData.studentCount,
+          },
+          resume_path: formData.resume_path,
+        };
+        url = isUpdating
+          ? 'http://localhost:8000/api/users/me/profile'
+          : 'http://localhost:8000/api/users/me/onboarding';
+      }
 
       const response = await fetch(url, {
         method,
@@ -309,7 +360,13 @@ export default function Onboarding() {
       }
 
       await completeOnboarding();
-      navigate('/dashboard');
+      if (user?.role === 'recruiter') {
+        navigate('/recruiter-dashboard');
+      } else if (user?.role === 'college') {
+        navigate('/college-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -471,29 +528,77 @@ export default function Onboarding() {
     );
 
     if (step === 2) return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-700">Hiring Needs (Target Roles)</label>
-          <input
-            type="text"
-            placeholder="e.g. Software Engineer, Product Manager"
-            value={formData.targetRoles}
-            onChange={(e) => setFormData({ ...formData, targetRoles: e.target.value })}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">
-            Required Skills <span className="text-slate-400 font-normal">(comma separated)</span>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Hiring Needs (Target Roles)
+            <span className="ml-2 text-xs font-normal text-slate-400">
+              ({Array.isArray(formData.targetRoles) ? formData.targetRoles.length : 0} selected)
+            </span>
           </label>
-          <textarea
-            rows={3}
-            value={Array.isArray(formData.knownSkills) ? formData.knownSkills.join(', ') : formData.knownSkills}
-            onChange={(e) =>
-              setFormData({ ...formData, knownSkills: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })
-            }
-            className={inputClass}
-          />
+          <div className="border border-slate-200 rounded-xl bg-slate-50 p-3 max-h-40 overflow-y-auto">
+            <div className="flex flex-wrap gap-2">
+              {CAREER_GOALS.map((goal) => {
+                const selected = Array.isArray(formData.targetRoles) && formData.targetRoles.includes(goal);
+                return (
+                  <button
+                    key={goal}
+                    type="button"
+                    onClick={() => toggleTargetRole(goal)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-150 ${
+                      selected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {selected && <span className="mr-1">✓</span>}
+                    {goal}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {Array.isArray(formData.targetRoles) && formData.targetRoles.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Selected: <span className="font-medium text-slate-700">{formData.targetRoles.join(', ')}</span>
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Required Skills
+            <span className="ml-2 text-xs font-normal text-slate-400">
+              ({formData.knownSkills.length} selected — click to toggle)
+            </span>
+          </label>
+          <div className="border border-slate-200 rounded-xl bg-slate-50 p-3 max-h-52 overflow-y-auto">
+            <div className="flex flex-wrap gap-2">
+              {SKILLS_LIST.map((skill) => {
+                const selected = formData.knownSkills.includes(skill);
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleSkill(skill)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-150 ${
+                      selected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {selected && <span className="mr-1">✓</span>}
+                    {skill}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {formData.knownSkills.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Selected: <span className="font-medium text-slate-700">{formData.knownSkills.join(', ')}</span>
+            </p>
+          )}
         </div>
       </div>
     );
@@ -508,12 +613,16 @@ export default function Onboarding() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-700">Institution Name</label>
-          <input
-            type="text"
+          <select
             value={formData.institutionName}
             onChange={(e) => setFormData({ ...formData, institutionName: e.target.value })}
-            className={inputClass}
-          />
+            className={selectClass}
+          >
+            <option value="">— Select Institution —</option>
+            {COLLEGES.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700">Institution Type</label>
@@ -544,14 +653,39 @@ export default function Onboarding() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">Top Departments / Streams</label>
-          <textarea
-            rows={3}
-            placeholder="Computer Science, Electronics, etc."
-            value={formData.department}
-            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            className={inputClass}
-          />
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Top Departments / Streams
+            <span className="ml-2 text-xs font-normal text-slate-400">
+              ({Array.isArray(formData.collegeDepartments) ? formData.collegeDepartments.length : 0} selected)
+            </span>
+          </label>
+          <div className="border border-slate-200 rounded-xl bg-slate-50 p-3 max-h-40 overflow-y-auto">
+            <div className="flex flex-wrap gap-2">
+              {COLLEGE_DEPARTMENTS.map((dept) => {
+                const selected = Array.isArray(formData.collegeDepartments) && formData.collegeDepartments.includes(dept);
+                return (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => toggleCollegeDepartment(dept)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-150 ${
+                      selected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {selected && <span className="mr-1">✓</span>}
+                    {dept}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {Array.isArray(formData.collegeDepartments) && formData.collegeDepartments.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Selected: <span className="font-medium text-slate-700">{formData.collegeDepartments.join(', ')}</span>
+            </p>
+          )}
         </div>
       </div>
     );
