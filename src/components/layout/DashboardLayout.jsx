@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { User, LogOut, Phone, Mail, Settings, X, Check, Edit2, Loader2 } from 'lucide-react';
+import AiMentorChatbot from '../chat/AiMentorChatbot';
 
 export default function DashboardLayout() {
   const { user, logout, refetchUser } = useAuth();
@@ -155,6 +156,7 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      <AiMentorChatbot />
     </div>
   );
 }

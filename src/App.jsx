@@ -16,6 +16,8 @@ import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
 import MockInterview from './pages/student/MockInterview';
+import ResumeATS from './pages/student/ResumeATS';
+import PortfolioGenerator from './pages/student/PortfolioGenerator';
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
 import CollegeDashboard from './pages/college/CollegeDashboard';
 
@@ -70,6 +72,8 @@ function App() {
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="tracker" element={<ApplicationTracker />} />
               <Route path="mock-interview" element={<MockInterview />} />
+              <Route path="resume-ats" element={<ResumeATS />} />
+              <Route path="portfolio" element={<PortfolioGenerator />} />
             </Route>
           </Routes>
         </BrowserRouter>

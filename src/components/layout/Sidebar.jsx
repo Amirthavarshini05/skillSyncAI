@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, User, Target, Zap, Map, TrendingUp, Briefcase, CheckSquare, Settings, LogOut } from 'lucide-react';
+import { Home, User, Target, Zap, Map, TrendingUp, Briefcase, CheckSquare, Settings, LogOut, FileText, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar() {
@@ -15,6 +15,8 @@ export default function Sidebar() {
     { name: 'Market Insights', path: '/market-insights', icon: TrendingUp },
     { name: 'Opportunities', path: '/opportunities', icon: Briefcase },
     { name: 'Tracker', path: '/tracker', icon: CheckSquare },
+    { name: 'Resume ATS', path: '/resume-ats', icon: FileText },
+    { name: 'Portfolio', path: '/portfolio', icon: LayoutTemplate },
   ];
 
   const collegeLinks = [
