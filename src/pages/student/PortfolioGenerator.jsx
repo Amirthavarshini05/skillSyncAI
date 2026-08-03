@@ -5,7 +5,7 @@ import { LayoutTemplate, ExternalLink, Download, Code2, Briefcase, Mail, Globe, 
 
 export default function PortfolioGenerator() {
   const { user } = useAuth();
-  const { skills } = useAppData();
+  const { skills, studentProfile, roadmap } = useAppData();
   const [theme, setTheme] = useState('dark'); // 'dark', 'light', 'minimal'
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -19,6 +19,36 @@ export default function PortfolioGenerator() {
   };
 
   const topSkills = skills.slice(0, 6);
+
+  const getCompletedProjects = () => {
+    if (!studentProfile?.roadmap_progress || !roadmap) return [];
+    const progress = studentProfile.roadmap_progress;
+    const completed = [];
+    
+    Object.values(roadmap).forEach(stages => {
+      if (!Array.isArray(stages)) return;
+      stages.forEach(stage => {
+        if (!Array.isArray(stage.tasks)) return;
+        stage.tasks.forEach(task => {
+          if (task && task.type === 'project' && progress[task.id]?.completed) {
+            completed.push({
+              id: task.id,
+              title: task.title,
+              link: progress[task.id].link,
+              stage: stage.stage
+            });
+          }
+        });
+      });
+    });
+    return completed;
+  };
+
+  const completedProjects = getCompletedProjects();
+  const displayProjects = completedProjects.length > 0 ? completedProjects : [
+    { id: 'mock-1', title: 'Personal Finance Dashboard', link: 'https://github.com', stage: 'Intermediate' },
+    { id: 'mock-2', title: 'AI-Powered Search Engine', link: 'https://github.com', stage: 'Advanced' }
+  ];
 
   return (
     <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-12">
@@ -132,15 +162,35 @@ export default function PortfolioGenerator() {
                  <nav className="flex justify-between items-center mb-24">
                     <div className="font-black text-2xl tracking-tighter">{user?.name || "Portfolio"}.</div>
                     <div className="flex gap-6 text-sm font-bold opacity-70">
-                       <span>About</span>
-                       <span>Skills</span>
-                       <span>Projects</span>
-                       <span>Contact</span>
+                       <button 
+                          onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })}
+                          className="hover:opacity-100 transition-opacity cursor-pointer focus:outline-none"
+                       >
+                          About
+                       </button>
+                       <button 
+                          onClick={() => document.getElementById('skills-section')?.scrollIntoView({ behavior: 'smooth' })}
+                          className="hover:opacity-100 transition-opacity cursor-pointer focus:outline-none"
+                       >
+                          Skills
+                       </button>
+                       <button 
+                          onClick={() => document.getElementById('projects-section')?.scrollIntoView({ behavior: 'smooth' })}
+                          className="hover:opacity-100 transition-opacity cursor-pointer focus:outline-none"
+                       >
+                          Projects
+                       </button>
+                       <button 
+                          onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })}
+                          className="hover:opacity-100 transition-opacity cursor-pointer focus:outline-none"
+                       >
+                          Contact
+                       </button>
                     </div>
                  </nav>
 
                  {/* Hero Mock */}
-                 <div className="mb-32">
+                 <div id="about-section" className="mb-32">
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 leading-tight">
                        Building digital <br/> experiences.
                     </h1>
@@ -148,14 +198,17 @@ export default function PortfolioGenerator() {
                        Hi, I'm {user?.name || 'a Developer'}. I specialize in building exceptional websites, applications, and everything in between.
                     </p>
                     <div className="flex gap-4">
-                       <div className={`px-8 py-4 rounded-full font-bold flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
+                       <button 
+                          onClick={() => document.getElementById('projects-section')?.scrollIntoView({ behavior: 'smooth' })}
+                          className={`px-8 py-4 rounded-full font-bold flex items-center gap-2 cursor-pointer transition-transform active:scale-95 focus:outline-none ${theme === 'dark' ? 'bg-white text-black hover:bg-slate-200' : 'bg-black text-white hover:bg-slate-800'}`}
+                       >
                           View Projects
-                       </div>
+                       </button>
                     </div>
                  </div>
 
                  {/* Skills Mock */}
-                 <div className="mb-32">
+                 <div id="skills-section" className="mb-32">
                     <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
                        <Code2 className="w-6 h-6" /> Technologies I use
                     </h2>
@@ -171,6 +224,53 @@ export default function PortfolioGenerator() {
                           </span>
                        )}
                     </div>
+                 </div>
+
+                 {/* Projects Mock */}
+                 <div id="projects-section" className="mb-32">
+                    <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                       <Briefcase className="w-6 h-6" /> Completed Projects
+                    </h2>
+                    <div className="grid md:grid-cols-2 gap-6">
+                       {displayProjects.map((project, i) => (
+                          <a 
+                             key={project.id || i} 
+                             href={project.link} 
+                             target="_blank" 
+                             rel="noopener noreferrer" 
+                             className={`p-6 rounded-2xl border transition-all hover:scale-[1.01] block group ${theme === 'dark' ? 'bg-slate-900 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-500/50 shadow-sm hover:shadow-md'}`}
+                          >
+                             <div className="flex justify-between items-start gap-4 mb-3">
+                                <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-500">
+                                   {project.stage} Stage
+                                </span>
+                                <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity text-indigo-500" />
+                             </div>
+                             <h3 className="font-bold text-lg mb-2 group-hover:text-indigo-500 transition-colors">
+                                {project.title}
+                             </h3>
+                             <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                                Completed and verified via SkillSync. Click to view repository or live demo.
+                             </p>
+                          </a>
+                       ))}
+                    </div>
+                 </div>
+
+                 {/* Contact Mock */}
+                 <div id="contact-section" className="mb-32">
+                    <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                       <Mail className="w-6 h-6" /> Get in touch
+                    </h2>
+                    <p className={`text-lg mb-6 leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                       Have a project in mind or want to collaborate? Feel free to reach out.
+                    </p>
+                    <a 
+                       href={`mailto:${user?.email || 'hello@skillsync.ai'}`} 
+                       className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold border transition-colors ${theme === 'dark' ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700 shadow-sm'}`}
+                    >
+                       <Mail className="w-4 h-4" /> {user?.email || 'hello@skillsync.ai'}
+                    </a>
                  </div>
 
                  {/* Footer Mock */}
