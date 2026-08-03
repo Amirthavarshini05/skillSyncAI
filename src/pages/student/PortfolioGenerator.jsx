@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutTemplate, ExternalLink, Download, Code2, Briefcase, Mail, Github, Linkedin, Eye } from 'lucide-react';
+import { LayoutTemplate, ExternalLink, Download, Code2, Briefcase, Mail, Globe, User, Eye } from 'lucide-react';
 
 export default function PortfolioGenerator() {
   const { user } = useAuth();
@@ -177,8 +177,8 @@ export default function PortfolioGenerator() {
                  <div className={`pt-8 border-t flex justify-between items-center ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
                     <p className="text-sm font-bold opacity-50">© 2026 {user?.name || 'Developer'}</p>
                     <div className="flex gap-4 opacity-50">
-                       <Github className="w-5 h-5" />
-                       <Linkedin className="w-5 h-5" />
+                       <Globe className="w-5 h-5" />
+                       <User className="w-5 h-5" />
                        <Mail className="w-5 h-5" />
                     </div>
                  </div>

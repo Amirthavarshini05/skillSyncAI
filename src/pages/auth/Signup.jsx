@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Brain } from 'lucide-react';
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get('role') || 'student';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState(initialRole);
   const { signup } = useAuth();
   const navigate = useNavigate();
 

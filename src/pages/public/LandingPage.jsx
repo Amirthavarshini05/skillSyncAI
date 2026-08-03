@@ -250,9 +250,9 @@ export default function LandingPage() {
                      <Link to="/signup" className="bg-white text-slate-900 px-8 py-4 rounded-full font-bold hover:bg-slate-100 transition shadow-xl shadow-white/10">
                         Create Free Account
                      </Link>
-                     <button className="bg-slate-800 text-white border border-white/10 px-8 py-4 rounded-full font-bold hover:bg-slate-700 transition">
+                     <Link to="/signup?role=college" className="bg-slate-800 text-white border border-white/10 px-8 py-4 rounded-full font-bold hover:bg-slate-700 transition flex items-center justify-center">
                         For Universities
-                     </button>
+                     </Link>
                   </div>
                </div>
             </div>
