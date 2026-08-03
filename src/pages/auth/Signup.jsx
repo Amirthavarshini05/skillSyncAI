@@ -1,20 +1,29 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Brain } from 'lucide-react';
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get('role') || 'student';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState(initialRole);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignup = (e) => {
+  const [error, setError] = useState('');
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-    signup(name, email, password, role);
-    navigate('/onboarding');
+    setError('');
+    try {
+      await signup(name, email, password, role);
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    }
   };
 
   return (
@@ -29,6 +38,7 @@ export default function Signup() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-slate-100">
           <form className="space-y-6" onSubmit={handleSignup}>
+            {error && <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">{error}</div>}
             <div>
               <label className="block text-sm font-medium text-slate-700">Full Name</label>
               <div className="mt-1">

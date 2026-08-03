@@ -4,6 +4,7 @@ import { AppDataProvider } from './context/AppDataContext';
 import LandingPage from './pages/public/LandingPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
+import VerifyOTP from './pages/auth/VerifyOTP';
 import Onboarding from './pages/auth/Onboarding';
 import DashboardLayout from './components/layout/DashboardLayout';
 import DashboardProxy from './components/layout/DashboardProxy';
@@ -14,11 +15,21 @@ import Opportunities from './pages/student/Opportunities';
 import ApplicationTracker from './pages/student/ApplicationTracker';
 import SkillGap from './pages/student/SkillGap';
 import MarketInsights from './pages/student/MarketInsights';
+import MockInterview from './pages/student/MockInterview';
+import ResumeATS from './pages/student/ResumeATS';
+import PortfolioGenerator from './pages/student/PortfolioGenerator';
+import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
+import CollegeDashboard from './pages/college/CollegeDashboard';
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, requireOnboarding = false }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/" />;
+  
+  if (requireOnboarding && user.needsOnboarding) {
+    return <Navigate to="/onboarding" />;
+  }
+  
   if (role && user.role !== role) return <Navigate to="/dashboard" />;
   return children;
 }
@@ -32,13 +43,26 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />
               </ProtectedRoute>
             } />
             
-            <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="/recruiter-dashboard" element={
+              <ProtectedRoute role="recruiter" requireOnboarding={true}>
+                <RecruiterDashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/college-dashboard" element={
+              <ProtectedRoute role="college" requireOnboarding={true}>
+                <CollegeDashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/" element={<ProtectedRoute requireOnboarding={true}><DashboardLayout /></ProtectedRoute>}>
               <Route path="dashboard" element={<DashboardProxy />} />
               <Route path="skill-profile" element={<SkillProfile />} />
               <Route path="career-matches" element={<CareerMatches />} />
@@ -47,6 +71,9 @@ function App() {
               <Route path="market-insights" element={<MarketInsights />} />
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="tracker" element={<ApplicationTracker />} />
+              <Route path="mock-interview" element={<MockInterview />} />
+              <Route path="resume-ats" element={<ResumeATS />} />
+              <Route path="portfolio" element={<PortfolioGenerator />} />
             </Route>
           </Routes>
         </BrowserRouter>
